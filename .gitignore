@@ -1,0 +1,23 @@
+# Environment files with sensitive data
+.env
+
+# Docker volumes
+/volumes/
+
+# Logs
+*.log
+logs/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary files
+*.tmp
+*.temp
