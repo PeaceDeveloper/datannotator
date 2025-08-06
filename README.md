@@ -23,6 +23,11 @@ This project provides a complete setup for data annotation using:
 
 2. **Set up environment variables**
    ```bash
+   make setup
+   ```
+   
+   Or manually:
+   ```bash
    cp .env.example .env
    ```
    
@@ -35,7 +40,12 @@ This project provides a complete setup for data annotation using:
 
 3. **Start the services**
    ```bash
-   docker-compose up -d
+   make start
+   ```
+   
+   Or with Docker Compose directly:
+   ```bash
+   docker compose up -d
    ```
 
 4. **Access the applications**
@@ -73,18 +83,46 @@ Label Studio data is persisted using Docker volumes. Your projects and annotatio
 
 ## Commands
 
+### Using Makefile (Recommended)
 ```bash
+# Get help
+make help
+
+# Set up environment file
+make setup
+
 # Start services
-docker-compose up -d
+make start
 
 # View logs
-docker-compose logs -f
+make logs
+
+# Check status
+make status
 
 # Stop services
-docker-compose down
+make stop
+
+# Restart services
+make restart
+
+# Clean up (WARNING: deletes all data)
+make clean
+```
+
+### Using Docker Compose Directly
+```bash
+# Start services
+docker compose up -d
+
+# View logs
+docker compose logs -f
+
+# Stop services
+docker compose down
 
 # Stop services and remove volumes (WARNING: deletes all data)
-docker-compose down -v
+docker compose down -v
 ```
 
 ## Troubleshooting
