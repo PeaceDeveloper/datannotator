@@ -8,6 +8,10 @@ services:
       - LABEL_STUDIO_USERNAME=${LABEL_STUDIO_USERNAME}
       - LABEL_STUDIO_PASSWORD=${LABEL_STUDIO_PASSWORD}
       # - LABEL_STUDIO_USER_TOKEN=${LABEL_STUDIO_USER_TOKEN}
+      # Allow all hosts (simplify for dynamic ngrok URL) and trust ngrok domains for CSRF
+      - ALLOWED_HOSTS=*
+      - DJANGO_ALLOWED_HOSTS=*
+      - CSRF_TRUSTED_ORIGINS=https://*.ngrok-free.app,https://*.ngrok.io
     volumes:
       - label-studio-data:/label-studio/data
     restart: unless-stopped
@@ -20,7 +24,8 @@ services:
     environment:
       - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
       - NGROK_REGION=${NGROK_REGION:-us}
-    command: "http label-studio:8080"
+    # Rewrite host header so backend sees 'label-studio' while preserving HTTPS at edge
+    command: "http --host-header=rewrite label-studio:8080"
     ports:
       - "4040:4040"  # ngrok web interface
     depends_on:
