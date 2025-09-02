@@ -1,0 +1,46 @@
+version: "3.8"
+
+services:
+  label-studio:
+    image: heartexlabs/label-studio:latest
+    container_name: label-studio
+    ports:
+      - "8080:8080"
+    environment:
+      - LABEL_STUDIO_USERNAME=${LABEL_STUDIO_USERNAME}
+      - LABEL_STUDIO_PASSWORD=${LABEL_STUDIO_PASSWORD}
+      # Allow all hosts (simplify for dynamic hostnames)
+      - ALLOWED_HOSTS=*
+      - DJANGO_ALLOWED_HOSTS=*
+      - CSRF_TRUSTED_ORIGINS=https://*.example.com
+    volumes:
+      - label-studio-data:/label-studio/data
+    restart: unless-stopped
+    networks:
+      - datannotator-network
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared
+    restart: unless-stopped
+    depends_on:
+      - label-studio
+    networks:
+      - datannotator-network
+    environment:
+      # Provide the Tunnel token created in Cloudflare (recommended)
+      - CLOUDFLARE_TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+      - TUNNEL_NAME=${CLOUDFLARE_TUNNEL_NAME:-label-studio-tunnel}
+    # Recommended: run an authenticated tunnel using a pre-created tunnel token
+    command: >
+      tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    # DEV ALTERNATIVE (uncomment to use): ephemeral tunnel directly to label-studio
+    # command: tunnel --no-autoupdate --url http://label-studio:8080
+
+volumes:
+  label-studio-data:
+    driver: local
+
+networks:
+  datannotator-network:
+    driver: bridge
