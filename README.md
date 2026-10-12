@@ -1,141 +1,82 @@
 # DataAnnotator
 
-A Docker Compose project for data annotation using Label Studio with ngrok web exposure.
+Docker Compose setup for **Label Studio** with **PostgreSQL 15** as the project database.
 
 ## Overview
 
-This project provides a complete setup for data annotation using:
-- **Label Studio**: Web-based data annotation tool
-- **ngrok**: Secure tunneling to expose Label Studio to the internet
+- **Label Studio** (pinned image): web annotation UI on port 8080
+- **PostgreSQL 15**: relational store for users, projects, tasks, and annotations
+- **Media volume**: uploads and files remain in the `label-studio-data` Docker volume
 
 ## Prerequisites
 
-- Docker and Docker Compose installed
-- ngrok account and auth token (free at [ngrok.com](https://ngrok.com))
+- Docker and Docker Compose
+- A filled `.env` (from `.env.example`)
 
 ## Quick Start
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/PeaceDeveloper/datannotator.git
-   cd datannotator
-   ```
+1. Clone and enter the repo
+2. `make setup` then edit `.env` (Label Studio admin + Postgres credentials)
+3. `make start`
+4. Open http://localhost:8080 and sign in with `LABEL_STUDIO_USERNAME` / `LABEL_STUDIO_PASSWORD`
 
-2. **Set up environment variables**
-   ```bash
-   make setup
-   ```
-   
-   Or manually:
-   ```bash
-   cp .env.example .env
-   ```
-   
-   Edit `.env` file with your credentials:
-   - `LABEL_STUDIO_USERNAME`: Admin username for Label Studio
-   - `LABEL_STUDIO_PASSWORD`: Admin password for Label Studio  
-   - `LABEL_STUDIO_USER_TOKEN`: API token for Label Studio
-   - `NGROK_AUTHTOKEN`: Your ngrok auth token from [ngrok dashboard](https://dashboard.ngrok.com/get-started/your-authtoken)
-   - `NGROK_REGION`: ngrok region (us, eu, ap, au, sa, jp, in)
+## Database
 
-3. **Start the services**
-   ```bash
-   make start
-   ```
-   
-   Or with Docker Compose directly:
-   ```bash
-   docker compose up -d
-   ```
+Label Studio does **not** use `DATABASE_URL`. It requires:
 
-4. **Access the applications**
-   - **Label Studio**: http://localhost:8080
-   - **ngrok Web Interface**: http://localhost:4040
-   - **Public URL**: Check ngrok interface for the public tunnel URL
+| Variable | Purpose |
+|----------|---------|
+| `DJANGO_DB=default` | Select PostgreSQL backend |
+| `POSTGRE_HOST` | Hostname (`postgres` in Compose) |
+| `POSTGRE_PORT` | Port (`5432`) |
+| `POSTGRE_NAME` | Database name (`POSTGRES_DB`) |
+| `POSTGRE_USER` / `POSTGRE_PASSWORD` | Credentials |
 
-## Usage
+These are set in [`docker-compose.yml`](docker-compose.yml) from your `.env` `POSTGRES_*` values.
 
-### Label Studio
-- Access Label Studio at http://localhost:8080
-- Login with the credentials you set in the `.env` file
-- Create projects and start annotating your data
+### Data persistence
 
-### ngrok Tunnel
-- The ngrok service automatically creates a secure tunnel to Label Studio
-- View the public URL in the ngrok web interface at http://localhost:4040
-- Share the public URL to allow remote access to your Label Studio instance
+| Volume | Contents |
+|--------|----------|
+| `label-studio-data` | Media/uploads (+ optional SQLite `.bak` after migration) |
+| `postgres-data` | PostgreSQL data files |
 
-## Configuration
-
-### Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `LABEL_STUDIO_USERNAME` | Admin username | `admin` |
-| `LABEL_STUDIO_PASSWORD` | Admin password | - |
-| `LABEL_STUDIO_USER_TOKEN` | API token | - |
-| `NGROK_AUTHTOKEN` | ngrok auth token | - |
-| `NGROK_REGION` | ngrok tunnel region | `us` |
-
-### Data Persistence
-
-Label Studio data is persisted using Docker volumes. Your projects and annotations will be preserved between container restarts.
+`make clean` runs `docker compose down -v` and **deletes both volumes**.
 
 ## Commands
 
-### Using Makefile (Recommended)
 ```bash
-# Get help
-make help
-
-# Set up environment file
-make setup
-
-# Start services
-make start
-
-# View logs
-make logs
-
-# Check status
-make status
-
-# Stop services
-make stop
-
-# Restart services
+make setup      # Create .env from template
+make start      # Start Label Studio + Postgres
+make stop       # Stop services (keep volumes)
 make restart
-
-# Clean up (WARNING: deletes all data)
-make clean
+make logs
+make status
+make backup     # Archive label-studio-data volume under ./backups/
+make db-shell   # psql into Postgres
+make migrate-export  # Django dumpdata to volume + ./backups/
+make clean      # WARNING: deletes all volumes/data
 ```
 
-### Using Docker Compose Directly
-```bash
-# Start services
-docker compose up -d
+## SQLite → PostgreSQL migration
 
-# View logs
-docker compose logs -f
+If you still have a legacy SQLite file, follow the runbook:
 
-# Stop services
-docker compose down
+[`scripts/migrate-sqlite-to-postgres.md`](scripts/migrate-sqlite-to-postgres.md)
 
-# Stop services and remove volumes (WARNING: deletes all data)
-docker compose down -v
-```
+Summary: backup → `dumpdata` → point Compose at Postgres → `migrate` → `loaddata` → verify row counts. Do **not** raw-import the `.sqlite3` file into Postgres.
 
 ## Troubleshooting
 
-1. **ngrok authentication failed**: Verify your `NGROK_AUTHTOKEN` in the `.env` file
-2. **Label Studio not accessible**: Check if port 8080 is available
-3. **Services not starting**: Run `docker-compose logs` to see error messages
+1. **Label Studio not accessible**: check port 8080 and `make logs`
+2. **DB connection errors**: confirm Postgres is healthy (`docker compose ps`) and `POSTGRES_*` match what Compose injects as `POSTGRE_*`
+3. **Lost data after clean**: volumes were removed; restore from `./backups/`
 
-## Security Notes
+## Security
 
-- The `.env` file contains sensitive credentials and is excluded from git
-- Always use strong passwords for Label Studio admin account
-- Be cautious when sharing the ngrok public URL as it exposes your Label Studio instance
+- `.env` is gitignored; never commit secrets
+- Prefer strong `LABEL_STUDIO_PASSWORD` and `POSTGRES_PASSWORD`
+- `./backups/` can contain full production dumps — keep it private (gitignored)
 
 ## License
 

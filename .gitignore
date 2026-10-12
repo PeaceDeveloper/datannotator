@@ -4,6 +4,12 @@
 # Docker volumes
 /volumes/
 
+# Local DB backups and migration dumps (may contain production data)
+/backups/
+labelstudio-backup.tar.gz
+scripts/preflight-counts.txt
+scripts/post-migration-verify.txt
+
 # Logs
 *.log
 logs/
